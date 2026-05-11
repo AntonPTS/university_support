@@ -4,3 +4,6 @@ dataSourceType: db
 # Дополнительные параметры (используются фабрикой при file/web)
 filePath: data/requests.json
 apiUrl: https://api.uni/support/v1
+
+# Провайдер уведомлений
+notificationProvider: providerA  # providerA | providerB
