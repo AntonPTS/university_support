@@ -7,3 +7,4 @@ apiUrl: https://api.uni/support/v1
 
 # Провайдер уведомлений
 notificationProvider: providerA  # providerA | providerB
+audit_enabled: true
