@@ -1,37 +1,25 @@
-class RequestProcessor {
-    function process(studentId, topic, text, channel, urgentFlag) {
-        if studentId is null or topic is empty or text is empty then
-            throw "Bad request"
-        db = new DatabaseClient("jdbc:...","user","pass")
-        logger = new FileLogger("c:/logs/app.log")
+from contracts import IRequestSource, Request
+from unittest.mock import Mock
 
-        if urgentFlag == true then
-            logger.write("URGENT: " + studentId)
+class RequestProcessor:
+    """Доменная логика. Зависит только от контракта, не создаёт объекты и не читает конфиг."""
+    def __init__(self, data_source: IRequestSource, logger=None, notifier=None, responder=None):
+        self.data_source = data_source
+        self.logger = logger or Mock()
+        self.notifier = notifier or Mock()
+        self.responder = responder or Mock()
 
-        existing = db.query("select count(*) from requests where student_id=" + studentId + " and topic='" + topic + "'")
-        if existing > 0 then
-            logger.write("Duplicate request: " + studentId)
+    def process(self, student_id: str, topic: str, text: str, channel: str, urgent: bool = False) -> str:
+        if not student_id or not topic or not text:
+            raise ValueError("Bad request")
+
+        req = Request(student_id, topic, text, channel, urgent)
+
+        if self.data_source.exists(student_id, topic):
+            self.logger.write(f"Duplicate: {student_id}")
             return "Already exists"
 
-        id = db.insert("insert into requests(student_id, topic, text, status) values (...)")
-
-        if channel == "email" then
-            smtp = new SmtpClient("smtp.server", 25)
-            smtp.send(studentId + "@mail.ru", "Support", "Created request #" + id)
-        else if channel == "messenger" then
-            msg = new MessengerApiClient("token123")
-            msg.send(studentId, "Created request #" + id)
-        else
-            smtp = new SmtpClient("smtp.server", 25)
-            smtp.send(studentId + "@mail.ru", "Support", "Created request #" + id)
-
-        logger.write("Created request id=" + id)
-
-        if topic contains "password" then
-            return "Reset instruction sent"
-        else if topic contains "schedule" then
-            return "We will check schedule"
-        else
-            return "Request accepted"
-    }
-}
+        req_id = self.data_source.save(req)
+        self.logger.write(f"Created id={req_id}")
+        self.notifier.send(channel, student_id, f"Request #{req_id}")
+        return self.responder.build(topic) if self.responder else "Request accepted"

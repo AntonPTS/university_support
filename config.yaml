@@ -1,0 +1,6 @@
+# Выбор источника данных: db | file | web
+dataSourceType: db
+
+# Дополнительные параметры (используются фабрикой при file/web)
+filePath: data/requests.json
+apiUrl: https://api.uni/support/v1
